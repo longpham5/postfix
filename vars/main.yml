@@ -1,0 +1,19 @@
+# vars file
+---
+postfix_debconf_selections:
+  - name: postfix
+    question: postfix/main_mailer_type
+    value: Internet Site
+    vtype: select
+
+  - name: postfix
+    question: postfix/mailname
+    value: longppham5.xyz
+    vtype: string
+
+postfix_server_ip: 34.40.242.146
+my_domain: longppham5.xyz
+mail_domain: mail.longppham5.xyz
+webhook_url: https://tempmail.longppham5.xyz/webhook
+virtual_alias_domains:
+  - longppham5.xyz

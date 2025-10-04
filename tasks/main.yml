@@ -1,0 +1,92 @@
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ mail_domain }}"
+
+- name: Configure /etc/hosts
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    block: |
+      {{ postfix_server_ip }}    mail.longppham5.xyz longppham5.xyz
+    marker: "# {mark} ANSIBLE MANAGED BLOCK: mail server"
+
+- name: Configure debconf
+  ansible.builtin.debconf:
+    name: "{{ item.name }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  with_items: "{{ postfix_debconf_selections }}"
+
+- name: Set system mailname
+  ansible.builtin.debconf:
+    name: postfix
+    question: postfix/mailname
+    value: longppham5.xyz
+    vtype: string 
+
+- name: Install Postfix
+  ansible.builtin.apt:
+    name: postfix
+    state: present
+
+- name: Ensure postfix is started and enabled
+  ansible.builtin.service:
+    name: postfix
+    state: started
+    enabled: true
+
+- name: Create virtual_regexp file
+  ansible.builtin.copy:
+    dest: /etc/postfix/virtual_regexp
+    content: |
+      {% for domain in virtual_alias_domains %}
+      /.+@{{ domain }}/ catchall@{{ domain }}
+      {% endfor %}
+    owner: root
+    group: root
+    mode: '0644'
+  register: virtual_regexp_result
+  notify: 
+    - Compile virtual regexp
+    - Reload postfix
+
+- name: Configure Postfix main.cf
+  ansible.builtin.template:
+    src: templates/main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload postfix
+
+- name: Install procmail
+  ansible.builtin.apt:
+    name: procmail
+    state: present
+    update_cache: true
+  
+- name: Configure webhook file
+  ansible.builtin.template:
+    src: templates/forward-to-webhook.sh.j2
+    dest: /usr/local/bin/forward-to-webhook.sh
+    owner: root
+    group: root
+    mode: '0755'
+  notify: Reload postfix
+
+- name: Configure aliases file
+  ansible.builtin.copy:
+    dest: /etc/aliases
+    content: "catchall: |/usr/local/bin/forward-to-webhook.sh\n"
+    owner: root
+    group: root
+    mode: '0644'
+  register: aliases_result
+  notify: 
+    - Reload postfix
+    - Run newaliases

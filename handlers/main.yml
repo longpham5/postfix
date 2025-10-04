@@ -1,0 +1,20 @@
+- name: Reload service
+  ansible.builtin.service:
+    name: postfix
+    state: reloaded
+  listen: Reload postfix
+
+- name: Restart service
+  ansible.builtin.service:
+    name: postfix
+    state: restarted
+  listen: Restart postfix
+
+- name: Compile virtual regexp
+  ansible.builtin.command: postmap /etc/postfix/virtual_regexp
+  when: virtual_regexp_result is changed
+  changed_when: false
+
+- name: Run newaliases
+  ansible.builtin.command: newaliases
+  when: aliases_result is changed
