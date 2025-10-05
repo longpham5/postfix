@@ -5,7 +5,7 @@
 
 - name: Set hostname
   ansible.builtin.hostname:
-    name: "{{ mail_domain }}"
+    name: "{{ my_hostname }}"
 
 - name: Configure /etc/hosts
   ansible.builtin.blockinfile:
