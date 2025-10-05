@@ -45,7 +45,7 @@
     dest: /etc/postfix/virtual_regexp
     content: |
       {% for domain in my_domains %}
-      /.+@{{ domain | replace('.', '\\.') }}/   catchall@{{ domain }}
+      /.+@{{ domain | replace('.', '\.') }}/   catchall@{{ domain }}
       {% endfor %}
     owner: root
     group: root
