@@ -13,7 +13,7 @@ postfix_debconf_selections:
 
 postfix_server_ip: "{{ ansible_default_ipv4.address }}"
 my_domain: longppham5.xyz
-mail_domain: mail.longppham5.xyz
+my_hostname: mail.longppham5.xyz
 webhook_url: https://tempmail.longppham5.xyz/webhook
-virtual_alias_domains:
+my_domains:
   - longppham5.xyz

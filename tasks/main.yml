@@ -44,8 +44,8 @@
   ansible.builtin.copy:
     dest: /etc/postfix/virtual_regexp
     content: |
-      {% for domain in virtual_alias_domains %}
-      /.+@{{ domain }}/ catchall@{{ domain }}
+      {% for domain in my_domains %}
+      /.+@{{ domain | replace('.', '\\.') }}/   catchall@{{ domain }}
       {% endfor %}
     owner: root
     group: root
