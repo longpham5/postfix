@@ -17,4 +17,3 @@
 
 - name: Run newaliases
   ansible.builtin.command: newaliases
-  when: aliases_result is changed
