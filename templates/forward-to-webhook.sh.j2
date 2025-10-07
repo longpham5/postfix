@@ -1,4 +1,66 @@
 #!/bin/bash
-sed '/Content-Disposition: attachment/,/^\s*$/d; /Content-Disposition: inline/,/^\s*$/d' | \
-curl -X POST -H "Content-Type: text/plain" -H "Secret: 12398" --data-binary @- {{ webhook_url }}
+set -euo pipefail
 
+webhooks=(
+  "https://tempmail.longppham5.xyz/webhook"
+  "https://test.longppham5.xyz/webhook"
+)
+
+SECRET="${WEBHOOK_SECRET:-12398}"
+TIMEOUT=10
+
+# Tạo temp file an toàn
+TEMP_FILE=$(mktemp)
+trap "rm -f $TEMP_FILE" EXIT
+
+# Xử lý input
+echo "Processing email content..."
+if ! sed '/Content-Disposition: attachment/,/^[[:space:]]*$/d; /Content-Disposition: inline/,/^[[:space:]]*$/d' > "$TEMP_FILE"; then
+  echo "Error: Failed to process input" >&2
+  exit 1
+fi
+
+# Check if file has content
+if [ ! -s "$TEMP_FILE" ]; then
+  echo "Warning: No content to send" >&2
+  exit 0
+fi
+
+echo "Sending to ${#webhooks[@]} webhooks..."
+
+# Gửi đến tất cả webhooks song song
+success_count=0
+fail_count=0
+
+for url in "${webhooks[@]}"; do
+  (
+    if curl -s -f -m "$TIMEOUT" \
+      -X POST \
+      -H "Content-Type: text/plain" \
+      -H "Secret: $SECRET" \
+      --data-binary @"$TEMP_FILE" \
+      "$url" > /dev/null 2>&1; then
+      echo "✓ Success: $url"
+      exit 0
+    else
+      echo "✗ Failed: $url" >&2
+      exit 1
+    fi
+  ) &
+done
+
+# Chờ tất cả và đếm kết quả
+for job in $(jobs -p); do
+  if wait $job; then
+    ((success_count++))
+  else
+    ((fail_count++))
+  fi
+done
+
+echo "Results: $success_count succeeded, $fail_count failed"
+
+# Exit với error nếu tất cả đều fail
+if [ $success_count -eq 0 ] && [ $fail_count -gt 0 ]; then
+  exit 1
+fi
